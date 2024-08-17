@@ -13,8 +13,9 @@ from dotenv import load_dotenv
 from sqlalchemy.orm import Session  
 
 # Local
-from schemas import TokenData, UserDB, UserInDB  
-from database import SessionLocal  
+from schemas import TokenData
+from database import SessionLocal
+from models import User
 
 
 load_dotenv()
@@ -51,7 +52,7 @@ def get_password_hash(password):
 
 
 def get_user(db: Session, username: str):
-    return db.query(UserInDB).filter(UserInDB.username == username).first()
+    return db.query(User).filter(User.username == username).first()
 
 
 def authenticate_user(db: db_dependency, username: str, password: str):
@@ -68,7 +69,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=30)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -84,21 +85,25 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: db
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         id: int = payload.get("id")
+
         if not username or not id:
             raise credentials_exception
+        
         token_data = TokenData(username=username, id=id)
     except InvalidTokenError:
         raise credentials_exception
+    
     user = get_user(db, username=token_data.username)
     if user is None:
         raise credentials_exception
+    
     return user
 
 
 async def get_current_active_user(
-    current_user: Annotated[UserDB, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
-    if current_user.disabled:
+    if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 

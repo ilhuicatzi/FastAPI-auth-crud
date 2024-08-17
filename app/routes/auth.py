@@ -41,13 +41,10 @@ async def register(user: UserCreate, db: db_dependency):
     return {"message": "User created successfully", "user": {"username": db_user.username, "email": db_user.email, "id": db_user.id}}
 
 
-@router.post("/token")
+@router.post("/token", response_model=Token)
 async def login_for_access_token(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    db: db_dependency
-) -> dict:
-    user = authenticate_user(
-        db_dependency, form_data.username, form_data.password)
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency) -> dict:
+    user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -55,14 +52,10 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username, "id": user.id}, expires_delta=access_token_expires
-    )
+    access_token = create_access_token(data={"sub": user.username, "id": user.id}, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.get("/users/me/", response_model=UserDB)
-async def read_users_me(
-    current_user: Annotated[UserDB, Depends(get_current_active_user)],
-):
+async def read_users_me(current_user: Annotated[User, Depends(get_current_active_user)]):
     return current_user
