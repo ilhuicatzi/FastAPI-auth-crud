@@ -1,10 +1,8 @@
 from pydantic import BaseModel
 
 
-#--------------------------------------------------------
-
-class TaksDB(BaseModel):
-    id: int
+# --------------------------------------------------------
+class TaskCreate(BaseModel):
     title: str
     description: str | None = None
     owner_id: int
@@ -12,7 +10,16 @@ class TaksDB(BaseModel):
     class Config:
         orm_mode = True
 
-#--------------------------------------------------------
+
+class TaskDB(TaskCreate):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+# --------------------------------------------------------
+
+
 class UserCreate(BaseModel):
     username: str
     email: str
@@ -21,12 +28,13 @@ class UserCreate(BaseModel):
     class Config:
         orm_mode = True
 
+
 class UserUpdate(BaseModel):
     username: str | None = None
     email: str | None = None
     password: str | None = None
 
-#--------------------------------------------------------
+# --------------------------------------------------------
 
 
 class UserDB(BaseModel):
@@ -38,8 +46,9 @@ class UserDB(BaseModel):
     class Config:
         orm_mode = True
 
+
 class UserTasks(UserDB):
-    tasks: list[TaksDB] = []
+    tasks: list[TaskDB] = []
 
     class Config:
         orm_mode = True
@@ -48,7 +57,8 @@ class UserTasks(UserDB):
 class UserInDB(UserDB):
     hashed_password: str
 
-#--------------------------------------------------------
+# --------------------------------------------------------
+
 
 class Token(BaseModel):
     access_token: str
